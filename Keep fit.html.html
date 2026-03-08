@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keep Fit - Health Quiz</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #2ecc71;
+            --secondary: #e67e22;
+            --danger: #e74c3c;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f7f6;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app {
+            width: 90%;
+            max-width: 800px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Home Page */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--light);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .logo-area { display: flex; align-items: center; gap: 10px; }
+        .logo-icon { font-size: 30px; }
+        
+        /* Stats */
+        .stats { display: flex; gap: 15px; }
+        .stat-box {
+            padding: 5px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        /* Timer Bar */
+        .timer-container {
+            width: 100%;
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        #timer-bar {
+            width: 100%;
+            height: 100%;
+            background: var(--secondary);
+            border-radius: 5px;
+            transition: width 1s linear;
+        }
+
+        /* Question Styles */
+        .question-text { font-size: 1.2rem; margin-bottom: 20px; color: var(--dark); }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .option-btn {
+            padding: 15px;
+            border: 2px solid var(--light);
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 1rem;
+            text-align: left;
+        }
+        .option-btn:hover { border-color: var(--secondary); }
+        .correct-opt { background: var(--primary) !important; color: white; border-color: var(--primary) !important; }
+        .wrong-opt { background: var(--danger) !important; color: white; border-color: var(--danger) !important; }
+
+        /* Fill in Blank */
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        input[type="text"] {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        /* Feedback Buttons */
+        .feedback-area { margin-top: 20px; display: none; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-explain { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        .btn-translate { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        .info-panel {
+            background: #f9f9f9;
+            padding: 15px;
+            border-left: 5px solid var(--secondary);
+            margin-top: 10px;
+            white-space: pre-line;
+            display: none;
+        }
+
+        /* Navigation */
+        .nav-area { display: flex; justify-content: flex-end; margin-top: 20px; }
+        .next-btn { background: var(--secondary); color: white; border: none; padding: 12px 30px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+
+        /* Result Page */
+        .result-card { text-align: center; }
+        .level-badge { font-size: 2rem; color: var(--secondary); margin: 20px 0; font-weight: bold; }
+        .history-log { text-align: left; margin-top: 30px; max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="home-page">
+        <div class="header">
+            <div class="logo-area"><span class="logo-icon">🏃‍♂️</span> <h1>Keep fit</h1></div>
+        </div>
+        <div style="text-align: center;">
+            <img src="https://img.icons8.com/illustrations/external-tulpahn-outline-color-tulpahn/100/external-fitness-healthy-lifestyle-tulpahn-outline-color-tulpahn.png" alt="fitness">
+            <p>Test your vocabulary and health knowledge (15 Questions)</p>
+            <button class="next-btn" style="float:none; padding: 20px 50px;" onclick="startQuiz()">START</button>
+        </div>
+    </div>
+
+    <div id="quiz-page" class="hidden">
+        <div class="header">
+            <div class="logo-area"><span class="logo-icon">🏃‍♂️</span> <span>Keep fit</span></div>
+            <div class="stats">
+                <div class="stat-box" style="color: green;">Correct: <span id="score-correct">0</span></div>
+                <div class="stat-box" style="color: red;">Incorrect: <span id="score-incorrect">0</span></div>
+                <div class="stat-box">Q: <span id="current-q">1</span>/15</div>
+            </div>
+        </div>
+
+        <div class="timer-container">
+            <div id="timer-bar"></div>
+        </div>
+
+        <div id="question-container">
+            </div>
+
+        <div class="feedback-area" id="feedback-area">
+            <div class="btn-group">
+                <button class="btn-explain" onclick="toggleInfo('explain')">Explain</button>
+                <button class="btn-translate" onclick="toggleInfo('translate')">Translation</button>
+            </div>
+            <div id="explain-panel" class="info-panel"></div>
+            <div id="translate-panel" class="info-panel"></div>
+        </div>
+
+        <div class="nav-area">
+            <button id="submit-btn" class="next-btn hidden" onclick="checkFillInAnswer()">SUBMIT ANSWER</button>
+            <button id="next-btn" class="next-btn hidden" onclick="loadQuestion()">NEXT</button>
+        </div>
+    </div>
+
+    <div id="result-page" class="hidden">
+        <div class="result-card">
+            <h2>Quiz Completed!</h2>
+            <div id="score-display" style="font-size: 1.5rem;">Score: 0/15</div>
+            <div class="level-badge" id="level-name">INTERMEDIATE</div>
+            <div id="level-desc" style="margin-bottom: 20px; line-height: 1.6;"></div>
+            <button class="next-btn" style="float:none" onclick="location.reload()">Try Again</button>
+            
+            <div class="history-log" id="history-log">
+                <h3>History Log:</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            type: "mcq",
+            q: "He has a very high ________ of snacks between meals, which is making him gain weight.",
+            options: ["intake", "asset", "onset", "factor"],
+            correct: "intake",
+            explain: "Grammar: Noun usage. 'Intake' refers to the amount of food/drink taken into the body.\nLỗi thường gặp: Dùng 'onset' (sự bắt đầu) là sai ngữ cảnh.",
+            trans: "Anh ấy có lượng tiêu thụ đồ ăn vặt giữa các bữa ăn rất cao, điều này khiến anh ấy tăng cân."
+        },
+        {
+            type: "fill",
+            q: "Type the correct word: Regular exercise can help ________ (ngăn chặn) heart disease.",
+            correct: "prevent",
+            explain: "Vocabulary: Verb 'prevent' means to stop something from happening.\nCấu trúc: help + (to) verb. Dùng 'prevent' để chỉ việc ngăn chặn bệnh tật.",
+            trans: "Tập thể dục thường xuyên có thể giúp ngăn ngừa bệnh tim."
+        },
+        {
+            type: "mcq",
+            q: "The doctor made a quick ________ after looking at the X-ray.",
+            options: ["therapy", "diagnosis", "insomnia", "infection"],
+            correct: "diagnosis",
+            explain: "Vocabulary: 'Diagnosis' is the identification of the nature of an illness.\nLưu ý: 'Therapy' là trị liệu, diễn ra sau khi đã có diagnosis.",
+            trans: "Bác sĩ đã đưa ra chẩn đoán nhanh chóng sau khi xem phim X-quang."
+        },
+        {
+            type: "fill",
+            q: "Complete the sentence: Fast food is often high in ________ (chất béo) and salt.",
+            correct: "fat",
+            explain: "Noun: 'Fat' refers to the substance in food. In this context, it's an uncountable noun.\nLỗi: Không dùng 'fats' ở số nhiều trong trường hợp nói chung này.",
+            trans: "Đồ ăn nhanh thường chứa nhiều chất béo và muối."
+        },
+        {
+            type: "mcq",
+            q: "Walking 10,000 steps a day is a ________ way to stay fit.",
+            options: ["brisk", "regular", "acute", "chronic"],
+            correct: "regular",
+            explain: "Adjective: 'Regular' means happening at fixed intervals. \nBrisk (nhanh) thường đi với 'brisk walk' chứ không đi với 'way'.",
+            trans: "Đi bộ 10.000 bước mỗi ngày là một cách đều đặn để giữ dáng."
+        },
+        {
+            type: "mcq",
+            q: "You should ________ skipping breakfast if you want to have enough energy for the day.",
+            options: ["overdo", "avoid", "stimulate", "maintain"],
+            correct: "avoid",
+            explain: "Verb: 'Avoid' + V-ing means to keep away from doing something.\nCấu trúc: Avoid + V-ing (tránh làm gì đó).",
+            trans: "Bạn nên tránh bỏ bữa sáng nếu muốn có đủ năng lượng cho cả ngày."
+        },
+        {
+            type: "fill",
+            q: "Re-write: The patient needs to ________ (hồi phục) from the surgery.",
+            correct: "recover",
+            explain: "Verb: 'Recover' (hồi phục). Thường đi kèm với giới từ 'from'.",
+            trans: "Bệnh nhân cần hồi phục sau ca phẫu thuật."
+        },
+        {
+            type: "mcq",
+            q: "Swimming is a low-impact exercise that doesn't put much ________ on your joints.",
+            options: ["stress", "benefit", "appetite", "variety"],
+            correct: "stress",
+            explain: "Noun: In physics/health, 'stress' means pressure or tension.\nStress ở đây không phải là căng thẳng đầu óc mà là áp lực lên khớp.",
+            trans: "Bơi lội là bài tập ít tác động không gây nhiều áp lực lên các khớp của bạn."
+        },
+        {
+            type: "mcq",
+            q: "A ________ diet includes plenty of fruits, vegetables, and whole grains.",
+            options: ["harmful", "nutritious", "infectious", "acute"],
+            correct: "nutritious",
+            explain: "Adjective: 'Nutritious' means efficient as food; nourishing.\nNghĩa: Một chế độ ăn uống đầy đủ dinh dưỡng.",
+            trans: "Một chế độ ăn uống giàu dinh dưỡng bao gồm nhiều trái cây, rau củ và ngũ cốc nguyên hạt."
+        },
+        {
+            type: "fill",
+            q: "Type the missing word: If you ________ (ăn quá nhiều), you will feel uncomfortable.",
+            correct: "overeat",
+            explain: "Verb: 'Overeat' means to eat more than is needed or healthy.\nNgữ pháp: Câu điều kiện loại 1 (If + S + V_present).",
+            trans: "Nếu bạn ăn quá nhiều, bạn sẽ cảm thấy khó chịu."
+        },
+        {
+            type: "mcq",
+            q: "Eating too much ________ food can lead to obesity.",
+            options: ["junk", "vital", "persistent", "brisk"],
+            correct: "junk",
+            explain: "Compound Noun: 'Junk food' refers to food that is unhealthy.\n'Junk' đóng vai trò tính từ bổ nghĩa cho food.",
+            trans: "Ăn quá nhiều đồ ăn rác (đồ ăn vặt không tốt) có thể dẫn đến béo phì."
+        },
+        {
+            type: "fill",
+            q: "Fill in: Stress is a major ________ (nhân tố) in many modern diseases.",
+            correct: "factor",
+            explain: "Noun: 'Factor' is a circumstance that contributes to a result.\n'Major factor': Nhân tố chính.",
+            trans: "Căng thẳng là một nhân tố chính trong nhiều căn bệnh hiện đại."
+        },
+        {
+            type: "mcq",
+            q: "Smoking can ________ the risk of developing lung cancer.",
+            options: ["diminish", "curb", "increase", "eliminate"],
+            correct: "increase",
+            explain: "Verb: Increase (tăng). Trái ngược với 'diminish' hay 'curb' (kiềm chế/giảm).",
+            trans: "Hút thuốc có thể làm tăng nguy cơ phát triển ung thư phổi."
+        },
+        {
+            type: "mcq",
+            q: "Good ________ is essential for a child's growth.",
+            options: ["nutrition", "allergy", "stroke", "artery"],
+            correct: "nutrition",
+            explain: "Noun: 'Nutrition' is the process of providing or obtaining the food necessary for health.",
+            trans: "Dinh dưỡng tốt là điều cần thiết cho sự phát triển của trẻ."
+        },
+        {
+            type: "fill",
+            q: "Complete: You should ________ (cắt giảm) on sugar to lose weight.",
+            correct: "reduce",
+            explain: "Verb: 'Reduce' (giảm bớt). Có thể dùng 'cut down' nhưng trong danh sách từ vựng là 'reduce'.",
+            trans: "Bạn nên giảm lượng đường để giảm cân."
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = { correct: 0, incorrect: 0 };
+    let timer;
+    let timeLeft = 20;
+    let history = [];
+    let isAnswered = false;
+
+    // Sounds
+    const soundCorrect = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+    const soundWrong = new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3');
+    const soundTimeout = new Audio('https://assets.mixkit.co/active_storage/sfx/1017/1017-preview.mp3');
+
+    function startQuiz() {
+        document.getElementById('home-page').classList.add('hidden');
+        document.getElementById('quiz-page').classList.remove('hidden');
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if (currentQuestionIndex >= 15) {
+            showResult();
+            return;
+        }
+
+        isAnswered = false;
+        resetUI();
+        const qData = questions[currentQuestionIndex];
+        const container = document.getElementById('question-container');
+        document.getElementById('current-q').innerText = currentQuestionIndex + 1;
+
+        let html = `<div class="question-text">${qData.q}</div>`;
+
+        if (qData.type === "mcq") {
+            const shuffledOptions = [...qData.options].sort(() => Math.random() - 0.5);
+            html += `<div class="options-grid">`;
+            shuffledOptions.forEach(opt => {
+                html += `<button class="option-btn" onclick="checkMCQAnswer(this, '${opt}')">${opt}</button>`;
+            });
+            html += `</div>`;
+            document.getElementById('submit-btn').classList.add('hidden');
+        } else {
+            html += `<div class="input-area">
+                        <input type="text" id="fill-input" placeholder="Type your answer here..." onkeypress="if(event.key==='Enter') checkFillInAnswer()">
+                     </div>`;
+            document.getElementById('submit-btn').classList.remove('hidden');
+        }
+
+        container.innerHTML = html;
+        startTimer();
+    }
+
+    function resetUI() {
+        clearInterval(timer);
+        timeLeft = 20;
+        updateTimerBar();
+        document.getElementById('feedback-area').style.display = 'none';
+        document.getElementById('explain-panel').style.display = 'none';
+        document.getElementById('translate-panel').style.display = 'none';
+        document.getElementById('next-btn').classList.add('hidden');
+    }
+
+    function startTimer() {
+        timer = setInterval(() => {
+            timeLeft--;
+            updateTimerBar();
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                handleTimeout();
+            }
+        }, 1000);
+    }
+
+    function updateTimerBar() {
+        const percentage = (timeLeft / 20) * 100;
+        document.getElementById('timer-bar').style.width = percentage + "%";
+    }
+
+    function handleTimeout() {
+        if (isAnswered) return;
+        soundTimeout.play();
+        const qData = questions[currentQuestionIndex];
+        showFeedback(false, "Time out! The correct answer was: " + qData.correct);
+        recordHistory(false, "No Answer (Time out)");
+    }
+
+    function checkMCQAnswer(btn, choice) {
+        if (isAnswered) return;
+        isAnswered = true;
+        clearInterval(timer);
+        
+        const qData = questions[currentQuestionIndex];
+        const isCorrect = choice === qData.correct;
+
+        if (isCorrect) {
+            btn.classList.add('correct-opt');
+            handleSuccess();
+        } else {
+            btn.classList.add('wrong-opt');
+            handleFailure();
+            // Highlight correct one
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(b => { if(b.innerText === qData.correct) b.classList.add('correct-opt'); });
+        }
+        recordHistory(isCorrect, choice);
+    }
+
+    function checkFillInAnswer() {
+        if (isAnswered) return;
+        const input = document.getElementById('fill-input');
+        const choice = input.value.trim().toLowerCase();
+        if (!choice) return;
+
+        isAnswered = true;
+        clearInterval(timer);
+        
+        const qData = questions[currentQuestionIndex];
+        const isCorrect = choice === qData.correct.toLowerCase();
+
+        if (isCorrect) {
+            input.style.borderColor = "var(--primary)";
+            handleSuccess();
+        } else {
+            input.style.borderColor = "var(--danger)";
+            handleFailure();
+        }
+        recordHistory(isCorrect, choice || "Empty");
+    }
+
+    function handleSuccess() {
+        score.correct++;
+        document.getElementById('score-correct').innerText = score.correct;
+        soundCorrect.play();
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#2ecc71'] });
+        showFeedback(true);
+    }
+
+    function handleFailure() {
+        score.incorrect++;
+        document.getElementById('score-incorrect').innerText = score.incorrect;
+        soundWrong.play();
+        confetti({ particleCount: 50, spread: 50, origin: { y: 0.6 }, colors: ['#e74c3c'] });
+        showFeedback(false);
+    }
+
+    function showFeedback(isCorrect, customMsg = "") {
+        const qData = questions[currentQuestionIndex];
+        document.getElementById('feedback-area').style.display = 'block';
+        document.getElementById('next-btn').classList.remove('hidden');
+        document.getElementById('submit-btn').classList.add('hidden');
+        
+        document.getElementById('explain-panel').innerText = (customMsg ? customMsg + "\n\n" : "") + qData.explain;
+        document.getElementById('translate-panel').innerText = qData.trans;
+        
+        currentQuestionIndex++;
+    }
+
+    function toggleInfo(type) {
+        const panel = document.getElementById(type + '-panel');
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function recordHistory(isCorrect, userChoice) {
+        const qData = questions[currentQuestionIndex - 1];
+        history.push({
+            q: qData.q,
+            correct: qData.correct,
+            user: userChoice,
+            status: isCorrect ? "✅" : "❌"
+        });
+    }
+
+    function showResult() {
+        document.getElementById('quiz-page').classList.add('hidden');
+        document.getElementById('result-page').classList.remove('hidden');
+        
+        const total = score.correct;
+        document.getElementById('score-display').innerText = `Final Score: ${total}/15`;
+        
+        let level = "";
+        let desc = "";
+
+        if (total <= 3) { level = "BEGINNER"; desc = "Focus on basic vocabulary. You need to review the Unit 3 word list thoroughly."; }
+        else if (total <= 6) { level = "ELEMENTARY"; desc = "Good start! Try to practice more with fill-in-the-blank sentences."; }
+        else if (total <= 9) { level = "PRE-INTERMEDIATE"; desc = "You understand most terms but struggle with specific usage."; }
+        else if (total <= 11) { level = "INTERMEDIATE"; desc = "Well done! Your health vocabulary is solid."; }
+        else if (total <= 13) { level = "UPPER-INTERMEDIATE"; desc = "Excellent! You have a great grasp of health and fitness context."; }
+        else { level = "ADVANCED"; desc = "Perfect! You are a master of this unit."; }
+
+        document.getElementById('level-name').innerText = level;
+        document.getElementById('level-desc').innerHTML = `
+            <strong>Performance:</strong> ${desc}<br>
+            <strong>Weakness:</strong> ${total < 10 ? "Word collocations and spelling." : "None significant."}<br>
+            <strong>Suggestion:</strong> Use Flashcards to remember the IPA and meanings.
+        `;
+
+        const log = document.getElementById('history-log');
+        history.forEach((item, index) => {
+            log.innerHTML += `<p>${index+1}. ${item.status} Q: ${item.q}<br><small>Your answer: ${item.user} | Correct: ${item.correct}</small></p>`;
+        });
+    }
+</script>
+
+</body>
+</html>
